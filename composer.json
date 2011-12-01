@@ -1,0 +1,21 @@
+{
+    "name":         "ideup/pachube-bundle",
+    "description":  "This bundle provides an integration of the Pachube API",
+    "keywords":     ["feed"],
+    "type":         "symfony-bundle",
+    "license":      "GNU",
+    "authors":      [
+        {
+            "name":     "Ideup",
+            "homepage": "http://ideup.com"
+        },
+    ],
+    "require":      {
+        "pachube/pachube_php":      ">=1.0",
+        "symfony/framework-bundle": "2.*"
+    },
+    "autoload":     {
+        "psr-0": { "Ideup\\PachubeBundle": "" }
+    },
+    "target-dir": "Ideup/PachubeBundle"
+}
