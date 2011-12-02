@@ -6,11 +6,14 @@
 
     <parameters>
         <parameter key="pachube_manager.class">Ideup\PachubeBundle\Model\PachubeManager</parameter>
+        <parameter key="pachube_connection.class">Ideup\PachubeBundle\Connection\Connection</parameter>
     </parameters>
 
     <services>
+        <service id="ideup.pachube.connection" class="%pachube_connection.class%">
+        </service>
         <service id="ideup.pachube.manager" class="%pachube_manager.class%">
-            <argument type="service" id="doctrine.orm.default_entity_manager" />
+            <argument type="service" id="ideup.pachube.connection" />
         </service>
     </services>
 

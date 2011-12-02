@@ -1,3 +1,0 @@
-[submodule "vendor/pachube-api"]
-    url=https://github.com/pachube/pachube_php.git
-    path=vendor/pachube-api

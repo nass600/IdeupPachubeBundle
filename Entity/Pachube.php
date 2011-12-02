@@ -11,19 +11,20 @@ class Pachube
 {
     protected $baseUrl;
     protected $apiVersion;
-    protected $apiKey;
-    protected $headers;
+    protected $feedId;
 
-
-    public function __construct($baseUrl = "", $apiVersion){
+    public function __construct($apiVersion, $feedId, $baseUrl = null){
         //default url
-        if ($baseUrl == "")
-            $this->baseUrl = "http://api.pachube.com/$apiVersion/feeds/";
+        if (!isset($baseUrl))
+            $this->baseUrl = "http://api.pachube.com/";
         //custom url
         else
             $this->baseUrl = $baseUrl;
 
-        $this->headers = array();
+        $this->setFeedId($feedId);
+
+        $this->setApiVersion($apiVersion);
+
     }
 
     /**
@@ -59,35 +60,24 @@ class Pachube
     }
 
     /**
-     * get apiKey
+     * get feedId
      */
-    public function getApiKey(){
-        return $this->apiKey;
+    public function getFeedId(){
+        return $this->feedId;
     }
 
     /**
-     * set apiKey
+     * set feedId
      *
-     * @param string $apiKey
+     * @param string $feedId
      */
-    protected function setApiKey($apiKey){
-        $this->apiKey = $apiKey;
+    public function setFeedId($feedId){
+        $this->feedId = $feedId;
     }
 
-    /**
-     * get headers
-     */
-    public function getHeaders(){
-        return $this->headers;
-    }
 
-    /**
-     * set headers
-     *
-     * @param string $headers
-     */
-    protected function setHeaders(array $headers){
-        $this->headers[] = $headers;
+    public function buildUrl(){
+        return $this->baseUrl . $this->getApiVersion() . "/feeds/" . $this->getFeedId() . "/datastreams/1";
     }
 }
  
