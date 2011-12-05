@@ -5,9 +5,9 @@
  * Time: 12:01 PM
  */
 
-namespace Ideup\PachubeBundle\Transform;
+namespace Ideup\PachubeBundle\Formatter;
 
-class DataTransformer
+class Formatter
 {
     public static function toArray($rawData){
         return json_decode($rawData);

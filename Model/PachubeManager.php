@@ -10,7 +10,7 @@ use Doctrine\ORM\EntityManager,
     Doctrine\Common\Util\Debug,
     Ideup\PachubeBundle\Entity\Pachube,
     Ideup\PachubeBundle\Connection\Connection,
-    Ideup\PachubeBundle\Transform\DataTransformer;
+    Ideup\PachubeBundle\Formatter\Formatter;
 
 class PachubeManager
 {
@@ -66,7 +66,7 @@ class PachubeManager
         //getting data
         $data = $this->conn->_getRequest($url);
 
-        return DataTransformer::toArray($data);
+        return Formatter::toArray($data);
     }
 
     public function updateFeed(){
