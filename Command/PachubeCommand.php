@@ -49,7 +49,24 @@ class PachubeCommand extends ContainerAwareCommand
                 $output->writeln('<error>'.$error.'</error>');
         } else{
             $date = new \DateTime($data->at);
+//            var_dump($this->isValidTimestampInterval($date));die;
             $output->writeln('<info>'.$date->format('Y-m-d H:i:s') .'</info> > <comment>'. $data->current_value . ' W</comment>');
         }
+    }
+
+    /**
+     * Checks timestamp interval among requests
+     *
+     * @param \DateTime $date
+     * @return bool
+     */
+    protected function isValidTimestampInterval(\DateTime $date)
+    {
+        $timestamp = $date->getTimestamp();
+        $now = new \DateTime('now');
+        $now_timestamp = $now->getTimestamp();
+//        var_dump($date->format('Y-m-d H:i:s'));
+//        var_dump($now->format('Y-m-d H:i:s'));
+        return !(($now_timestamp - $timestamp) > 300);
     }
 }

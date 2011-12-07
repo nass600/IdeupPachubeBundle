@@ -83,7 +83,7 @@ class Connection
             if($auth)
                 curl_setopt($ch, CURLOPT_HTTPHEADER, $this->getHeader());
             $data = curl_exec($ch);
-            //$headers = curl_getinfo($ch);
+//            $headers = curl_getinfo($ch);
             curl_close($ch);
             return $data;
         }
