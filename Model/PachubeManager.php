@@ -53,12 +53,14 @@ class PachubeManager
      * @return DataTransform
      */
     public function readFeed($apiVersion, $apiKey, $feedId){
+        if ($apiVersion != 'v1' && $apiVersion != 'v2')
+            $this->conn->exceptionHandler(Connection::WRONG_API_VERSION);
         //create Pachube object
         $pachube = new Pachube($apiVersion, $feedId);
         $this->conn->setApiKey($apiKey);
 
         if ($this->conn->getApiKey() === null)
-            $this->conn->exceptionHandler(Connection::WRONG_API);
+            $this->conn->exceptionHandler(Connection::WRONG_API_KEY);
 
         //building web service url
         $url = $pachube->buildUrl();

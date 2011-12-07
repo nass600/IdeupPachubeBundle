@@ -11,7 +11,8 @@ use Ideup\PachubeBundle\Entity\Pachube;
 
 class Connection
 {
-    const WRONG_API = 401;
+    const WRONG_API_KEY = 401;
+    const WRONG_API_VERSION = 402;
     const MISSING_PARAMS = 418;
     const MISSING_CURL = 500;
 
@@ -199,14 +200,23 @@ class Connection
     }
 
 
+    /**
+     * Handles object Exceptions
+     *
+     * @param $statusCode
+     * @throws \Exception
+     */
     public function exceptionHandler($statusCode){
         switch ($statusCode)
         {
             case 200:
                 $msg = "Pachube feed successfully updated";
                 break;
-            case $this::WRONG_API:
+            case $this::WRONG_API_KEY:
                 $msg = "Pachube API key was incorrect";
+                break;
+            case $this::WRONG_API_VERSION:
+                $msg = "Pachube API version not supported";
                 break;
             case 404:
                 $msg = "Feed ID or some other parameter does not exist";
