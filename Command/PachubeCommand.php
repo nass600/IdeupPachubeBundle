@@ -42,7 +42,7 @@ class PachubeCommand extends ContainerAwareCommand
         $apiKey = $input->getArgument('apiKey');
         $feedId = $input->getArgument('feedId');
 
-        $data = $this->getContainer()->get('ideup.pachube.manager')->readFeed($apiVersion, $apiKey, $feedId);
+        $data = $this->getContainer()->get('ideup.pachube.manager')->readFeed($apiVersion, $feedId, $apiKey);
 
         if (!empty($data->errors)){
             foreach ($data->errors as $error)

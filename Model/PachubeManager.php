@@ -52,7 +52,7 @@ class PachubeManager
      * @param integer $feedId
      * @return DataTransform
      */
-    public function readFeed($apiVersion, $apiKey, $feedId){
+    public function readFeed($apiVersion, $feedId, $apiKey){
         if ($apiVersion != 'v1' && $apiVersion != 'v2')
             $this->conn->exceptionHandler(Connection::WRONG_API_VERSION);
         //create Pachube object
