@@ -5,8 +5,9 @@ The IdeupPachubeBundle offers access to the pachube.com feed API either by using
 for Symfony2. Is on charge of handle all the operations related to pachube feeds via the bundle CRUD interface.
 
 Features include:
-* CRUD API for managing feeds
-* CLI commands for executing operations
+
+- CRUD API for managing feeds
+- CLI commands for executing operations
 
 
 What is Pachube?
