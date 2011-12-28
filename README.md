@@ -16,6 +16,7 @@ from objects, devices & buildings) to the Web and to build their own application
 
 For more information about the service, please visit: https://pachube.com
 
+[![Build Status](https://secure.travis-ci.org/nass600/IdeupPachubeBundle.png?branch=master)](http://travis-ci.org/nass600/IdeupPachubeBundle)
 
 Installation
 ============
@@ -99,6 +100,11 @@ Authors
 =======
 
 - Ignacio Velázquez Gómez
+
+Credits
+=======
+
+The bundle structure is partially based on [pachube_php](https://github.com/pachube/pachube_php)
 
 TODO
 ====
