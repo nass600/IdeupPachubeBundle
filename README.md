@@ -1,4 +1,5 @@
-# IdeupPachubeBundle
+IdeupPachubeBundle
+==================
 
 The IdeupPachubeBundle offers access to the pachube.com feed API either by using a PHP service or through the CLI
 for Symfony2. Is on charge of handle all the operations related to pachube feeds via the bundle CRUD interface.
@@ -8,8 +9,8 @@ Features include:
 - CLI commands for executing operations
 
 
-What is Pachube
-===============
+What is Pachube?
+----------------
 
 Pachube is an web service provider allowing developers to connect their own data (energy and environment data
 from objects, devices & buildings) to the Web and to build their own applications on it.
@@ -19,7 +20,7 @@ For more information about the service, please visit: https://pachube.com
 [![Build Status](https://secure.travis-ci.org/nass600/IdeupPachubeBundle.png?branch=master)](http://travis-ci.org/nass600/IdeupPachubeBundle)
 
 Installation
-============
+------------
 
 Add PachubeBundle to your vendor/bundles/ directory.
 
@@ -57,13 +58,11 @@ Add PachubeBundle to your `app/AppKernel.php`::
 
 
 Usage
-=====
+-----
 
-Create
-------
+### Create
 
-Read
-----
+### Read
 
 As a service::
 
@@ -82,32 +81,30 @@ As a command::
 
     $ php ./app/console ideup:feed:read version feedId apiKey
 
-Update
-------
+### Update
 
-Delete
-------
+### Delete
 
 
 License
-=======
+-------
 
 This bundle is under de GNU license. See the complete license in::
 
     LICENSE
 
 Authors
-=======
+-------
 
 - Ignacio Velázquez Gómez
 
 Credits
-=======
+-------
 
 The bundle structure is partially based on [pachube_php](https://github.com/pachube/pachube_php)
 
 TODO
-====
+----
 
 - Unit testing
 - Add config options
