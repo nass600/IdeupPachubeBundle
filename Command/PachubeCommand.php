@@ -33,6 +33,7 @@ class PachubeCommand extends ContainerAwareCommand
                     'apiKey', InputArgument::REQUIRED, 'API Key.'
                 )
             ))
+            ->addOption('dump', null, InputOption::VALUE_NONE, 'Dumps to standard output the complete message structure')
         ;
     }
 
@@ -50,7 +51,11 @@ class PachubeCommand extends ContainerAwareCommand
         } else{
             $date = new \DateTime($data->at);
 //            var_dump($this->isValidTimestampInterval($date));die;
-            $output->writeln('<info>'.$date->format('Y-m-d H:i:s') .'</info> > <comment>'. $data->current_value . ' W</comment>');
+            if ($input->getOption('dump')) {
+                $output->writeln(var_dump($data));
+            }
+            else
+                $output->writeln('<info>'.$date->format('Y-m-d H:i:s') .'</info> > <comment>'. $data->current_value . ' W</comment>');
         }
     }
 
