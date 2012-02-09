@@ -31,7 +31,13 @@ class PachubeCommand extends ContainerAwareCommand
                 ),
                 new InputArgument(
                     'apiKey', InputArgument::REQUIRED, 'API Key.'
-                )
+                ),
+                new InputArgument(
+                    'start', InputArgument::OPTIONAL, 'Start date'
+                ),
+                new InputArgument(
+                    'end', InputArgument::OPTIONAL, 'End date'
+                ),
             ))
             ->addOption('dump', null, InputOption::VALUE_NONE, 'Dumps to standard output the complete message structure')
         ;
@@ -42,20 +48,32 @@ class PachubeCommand extends ContainerAwareCommand
         $apiVersion = $input->getArgument('apiVersion');
         $apiKey = $input->getArgument('apiKey');
         $feedId = $input->getArgument('feedId');
+        $start = $input->getArgument('start');
+        $end = $input->getArgument('end');
 
-        $data = $this->getContainer()->get('ideup.pachube.manager')->readFeed($apiVersion, $feedId, $apiKey);
+        $data = $this->getContainer()->get('ideup.pachube.manager')->readFeed($apiVersion, $feedId, $apiKey, $start, $end);
 
-        if (!empty($data->errors)){
-            foreach ($data->errors as $error)
-                $output->writeln('<error>'.$error.'</error>');
-        } else{
-            $date = new \DateTime($data->at);
-//            var_dump($this->isValidTimestampInterval($date));die;
-            if ($input->getOption('dump')) {
-                $output->writeln(var_dump($data));
+        //time-dependant data
+        if ($start != null && $end != null){
+
+        }
+        //no time-dependant data
+        else{
+            // Error throwing
+            if (!empty($data->errors)){
+                foreach ($data->errors as $error)
+                    $output->writeln('<error>'.$error.'</error>');
             }
-            else
-                $output->writeln('<info>'.$date->format('Y-m-d H:i:s') .'</info> > <comment>'. $data->current_value . ' W</comment>');
+            // Receiving
+            else{
+                $date = new \DateTime($data->at);
+    //            var_dump($this->isValidTimestampInterval($date));die;
+                if ($input->getOption('dump')) {
+                    $output->writeln(var_dump($data));
+                }
+                else
+                    $output->writeln('<info>'.$date->format('Y-m-d H:i:s') .'</info> > <comment>'. $data->current_value . ' W</comment>');
+            }
         }
     }
 

@@ -52,21 +52,53 @@ class PachubeManager
      * @param integer $feedId
      * @return DataTransform
      */
-    public function readFeed($apiVersion, $feedId, $apiKey){
+    public function readFeed($apiVersion, $feedId, $apiKey, $start = null, $end = null){
         if ($apiVersion != 'v1' && $apiVersion != 'v2')
             $this->conn->exceptionHandler(Connection::WRONG_API_VERSION);
-        //create Pachube object
-        $pachube = new Pachube($apiVersion, $feedId);
+
         $this->conn->setApiKey($apiKey);
 
         if ($this->conn->getApiKey() === null)
             $this->conn->exceptionHandler(Connection::WRONG_API_KEY);
 
-        //building web service url
-        $url = $pachube->buildUrl();
 
-        //getting data
-        $data = $this->conn->_getRequest($url);
+        //if historical query
+        if ($start != null && $end != null){
+            $startDate = new \DateTime($start);
+            $endDate = new \DateTime($end);
+
+            $next = clone $startDate;
+            $interval = $startDate->diff($endDate);
+            for ($i = 0; $i < $interval->days; $i++){
+                $from = clone $next;
+                $to = clone $next;
+                $to->modify('+1 days');
+
+                $pachube = new Pachube($apiVersion, $feedId);
+                $pachube->setStartDate($from);
+                $pachube->setEndDate($to);
+
+                $url = $pachube->buildUrl();
+//                var_dump($this->conn->_getRequest($url));
+                $response = json_decode($this->conn->_getRequest($url));
+                echo "<pre>";
+                var_dump($response);
+                echo "</pre>";
+                die;
+                $next->modify('+1 days');
+            }
+            die;
+        }
+        else{
+            $pachube = new Pachube($apiVersion, $feedId);
+
+            //building web service url
+            $url = $pachube->buildUrl();
+
+            //getting data
+            $data = $this->conn->_getRequest($url);
+
+        }
 
         return Formatter::toArray($data);
     }

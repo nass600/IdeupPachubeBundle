@@ -12,6 +12,8 @@ class Pachube
     protected $baseUrl;
     protected $apiVersion;
     protected $feedId;
+    protected $startDate;
+    protected $endDate;
 
     public function __construct($apiVersion, $feedId, $baseUrl = null){
         //default url
@@ -75,9 +77,32 @@ class Pachube
         $this->feedId = $feedId;
     }
 
+    /**
+     * set startDate
+     *
+     * @param string $startDate
+     */
+    public function setStartDate($startDate){
+        $this->startDate = $startDate;
+    }
+
+    /**
+     * set endDate
+     *
+     * @param string $endDate
+     */
+    public function setEndDate($endDate){
+        $this->endDate = $endDate;
+    }
 
     public function buildUrl(){
-        return $this->baseUrl . $this->getApiVersion() . "/feeds/" . $this->getFeedId() . "/datastreams/1";
+        if ($this->startDate != null && $this->endDate != null){
+            return $this->baseUrl . $this->getApiVersion() . "/feeds/" . $this->getFeedId() .
+                "?start=". $this->startDate->format('c') .
+                "&end=".$this->endDate->format('c')."&interval=0";
+        }
+        else
+            return $this->baseUrl . $this->getApiVersion() . "/feeds/" . $this->getFeedId() . "/datastreams/1";
     }
 }
  
