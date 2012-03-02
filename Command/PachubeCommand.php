@@ -15,8 +15,16 @@ use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand,
     Ideup\PachubeBundle\Entity\Pachube,
     Ideup\PachubeBundle\Connection\Connection;
 
+use Doctrine\ORM\EntityRepository,
+    Doctrine\ORM\Query\ResultSetMapping;
+
 class PachubeCommand extends ContainerAwareCommand
 {
+    /**
+     * @var int interval
+     */
+    protected $interval = 15;
+
     protected function configure()
     {
         $this
@@ -51,31 +59,83 @@ class PachubeCommand extends ContainerAwareCommand
         $start = $input->getArgument('start');
         $end = $input->getArgument('end');
 
-        $data = $this->getContainer()->get('ideup.pachube.manager')->readFeed($apiVersion, $feedId, $apiKey, $start, $end);
+        $startDate = new \DateTime($start);
+        $endDate = new \DateTime($end);
 
-        //time-dependant data
-        if ($start != null && $end != null){
-//            var_dump($data);
-        }
-        //no time-dependant data
-        else{
-            // Error throwing
-            if (!empty($data->errors)){
-                foreach ($data->errors as $error)
-                    $output->writeln('<error>'.$error.'</error>');
-            }
-            // Receiving
-            else{
-                $date = new \DateTime($data->at);
-    //            var_dump($this->isValidTimestampInterval($date));die;
-                if ($input->getOption('dump')) {
-                    $output->writeln(var_dump($data));
-                }
-                else
-                    $output->writeln('<info>'.$date->format('Y-m-d H:i:s') .'</info> > <comment>'. $data->current_value . ' W</comment>');
+        $em = $this->getContainer()->get('doctrine')->getEntityManager();
+
+        $rsm = new ResultSetMapping;
+        $rsm->addEntityResult('GNFSmartMeterBundle:HouseBridge', 'e');
+
+        $query = "
+            SELECT e.*
+            FROM etc_pm_house_bridge e
+            WHERE
+                e.house_id IS NOT NULL
+        ";
+
+        //$results = $this->getContainer()->get('doctrine')->getEntityManager('default')->createNativeQuery($query, $rsm)->getArrayResult();
+        $results = $this->getContainer()->get('doctrine')->getEntityManager('default')->getRepository('GNFSmartMeterBundle:HouseBridge')->findAll();
+
+        foreach ($results as $r) {
+          if ($r->getHouseId() === null) {
+            continue;
+          }
+
+          $data = $this->getContainer()->get('ideup.pachube.manager')->readFeed($apiVersion, $r->getFeedId(), $r->getApiKey(), $start, $end);
+
+            ob_start();
+            var_dump($data);
+            $buff = ob_get_clean();
+            $filename = $r->getId() . '--' . $startDate->format('Y-m-d H:i:s');
+            file_put_contents("/tmp/$filename.json", $buff);
+
+            $data = json_decode($data, true);
+
+          if (!isset($data['datastreams'][1]['datapoints'])) {
+            continue;
+          }
+            $points = $data['datastreams'][1]['datapoints'];
+            foreach ($points as $point) {
+              $interval = $this->dateToInterval(new \DateTime($point['at']));
+
+              $homeEnergy = $this->getContainer()->get('doctrine')->getRepository('GNFSmartMeterBundle:HomeEnergy')->findOneBy(array(
+                'hour' => $interval,
+                'houseBridge' => $r->getId()
+              ));
+
+              if (null != $homeEnergy) {
+                continue;
+              }
+
+              $homeEnergy = $this->getContainer()->get('gnf.home_energy_manager')->create(
+                $point['value'],
+                $interval,
+                $r
+              );
+
+              $homeEnergy = $this->getContainer()->get('gnf.home_energy_manager')->update($homeEnergy);
             }
         }
     }
+
+    /**
+     * Takes a date and changes it to the minimun value of the interval
+     *
+     * @param \DateTime $date
+     * @return \DateTime
+     */
+    public function dateToInterval(\DateTime $date)
+    {
+        $min = $date->format('i');
+        $min = ((int)($min/$this->interval))*$this->interval;
+
+        $intervalDate = clone $date;
+        $intervalDate->setTime($date->format('H'), $min, 0);
+
+        return $intervalDate;
+    }
+
 
     /**
      * Checks timestamp interval among requests

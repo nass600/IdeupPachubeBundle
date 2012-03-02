@@ -17,7 +17,8 @@ class PachubeManager
     protected $em;
     protected $conn;
 
-    public function __construct(Connection $conn) {
+    public function __construct(Connection $conn)
+  {
         $this->conn = $conn;
     }
 
@@ -26,14 +27,15 @@ class PachubeManager
      *
      * @param null $title
      */
-    public function createFeed($title = null){
+    public function createFeed($title = null)
+  {
         if ($this->conn->getApiKey() === null)
             $this->conn->exceptionHandler(Connection::WRONG_API);
 
         if ($title === null)
             $this->conn->exceptionHandler(Connection::MISSING_PARAMS);
 
-        if(!function_exists('curl_init'))
+        if (!function_exists('curl_init'))
             $this->conn->exceptionHandler(Connection::MISSING_CURL);
 
         $url = "http://api.pachube.com/api.xml";
@@ -52,7 +54,8 @@ class PachubeManager
      * @param integer $feedId
      * @return DataTransform
      */
-    public function readFeed($apiVersion, $feedId, $apiKey, $start = null, $end = null){
+    public function readFeed($apiVersion, $feedId, $apiKey, $start = null, $end = null)
+  {
         if ($apiVersion != 'v1' && $apiVersion != 'v2')
             $this->conn->exceptionHandler(Connection::WRONG_API_VERSION);
 
@@ -63,35 +66,20 @@ class PachubeManager
 
 
         //if historical query
-        if ($start != null && $end != null){
+        if ($start != null && $end != null) {
             $startDate = new \DateTime($start);
             $endDate = new \DateTime($end);
 
-            $next = clone $startDate;
-            $interval = $startDate->diff($endDate);
+            $pachube = new Pachube($apiVersion, $feedId);
+            $pachube->setStartDate($startDate);
+            $pachube->setEndDate($endDate);
 
-            for ($i = 0; $i < $interval->days; $i++){
-                $from = clone $next;
-                $to = clone $next;
-                $to->modify('+1 days');
+            $url = $pachube->buildUrl();
 
-                $pachube = new Pachube($apiVersion, $feedId);
-                $pachube->setStartDate($from);
-                $pachube->setEndDate($to);
-
-                $url = $pachube->buildUrl();
-                //                var_dump($this->conn->_getRequest($url));
-                $response = $this->conn->_getRequest($url);
-                ob_start();
-                var_dump($response);
-                $buff = ob_get_clean();
-                file_put_contents('/tmp/log.txt', $buff);
-
-                $next->modify('+1 days');
-            }
-            die;
+            $response = $this->conn->_getRequest($url);
+            return $response;
         }
-        else{
+        else {
             $pachube = new Pachube($apiVersion, $feedId);
 
             //building web service url
@@ -105,7 +93,8 @@ class PachubeManager
         return Formatter::toArray($data);
     }
 
-    public function updateFeed(){
+    public function updateFeed()
+  {
 
     }
 
@@ -114,11 +103,12 @@ class PachubeManager
      *
      * @param string $feed_id
      */
-    public function deleteFeed($feed_id=''){
+    public function deleteFeed($feed_id='')
+  {
         if ($this->conn->getApiKey() === null)
             $this->conn->exceptionHandler(Connection::WRONG_API);
 
-        if(!is_numeric($feed_id))
+        if (!is_numeric($feed_id))
             $this->conn->exceptionHandler(Connection::MISSING_PARAMS);
 
         $url = "http://api.pachube.com/api/feeds/".$feed_id;
@@ -126,4 +116,4 @@ class PachubeManager
         $this->conn->_curlDelete($url);
     }
 }
- 
+
