@@ -55,7 +55,7 @@ class PachubeCommand extends ContainerAwareCommand
 
         //time-dependant data
         if ($start != null && $end != null){
-
+//            var_dump($data);
         }
         //no time-dependant data
         else{

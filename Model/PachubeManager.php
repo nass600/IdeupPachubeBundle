@@ -7,10 +7,10 @@
 namespace Ideup\PachubeBundle\Model;
 
 use Doctrine\ORM\EntityManager,
-    Doctrine\Common\Util\Debug,
-    Ideup\PachubeBundle\Entity\Pachube,
-    Ideup\PachubeBundle\Connection\Connection,
-    Ideup\PachubeBundle\Formatter\Formatter;
+Doctrine\Common\Util\Debug,
+Ideup\PachubeBundle\Entity\Pachube,
+Ideup\PachubeBundle\Connection\Connection,
+Ideup\PachubeBundle\Formatter\Formatter;
 
 class PachubeManager
 {
@@ -69,6 +69,7 @@ class PachubeManager
 
             $next = clone $startDate;
             $interval = $startDate->diff($endDate);
+
             for ($i = 0; $i < $interval->days; $i++){
                 $from = clone $next;
                 $to = clone $next;
@@ -79,12 +80,13 @@ class PachubeManager
                 $pachube->setEndDate($to);
 
                 $url = $pachube->buildUrl();
-//                var_dump($this->conn->_getRequest($url));
-                $response = json_decode($this->conn->_getRequest($url));
-                echo "<pre>";
+                //                var_dump($this->conn->_getRequest($url));
+                $response = $this->conn->_getRequest($url);
+                ob_start();
                 var_dump($response);
-                echo "</pre>";
-                die;
+                $buff = ob_get_clean();
+                file_put_contents('/tmp/log.txt', $buff);
+
                 $next->modify('+1 days');
             }
             die;
