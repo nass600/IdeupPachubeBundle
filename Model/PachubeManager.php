@@ -7,10 +7,10 @@
 namespace Ideup\PachubeBundle\Model;
 
 use Doctrine\ORM\EntityManager,
-    Doctrine\Common\Util\Debug,
-    Ideup\PachubeBundle\Entity\Pachube,
-    Ideup\PachubeBundle\Connection\Connection,
-    Ideup\PachubeBundle\Formatter\Formatter;
+Doctrine\Common\Util\Debug,
+Ideup\PachubeBundle\Entity\Pachube,
+Ideup\PachubeBundle\Connection\Connection,
+Ideup\PachubeBundle\Formatter\Formatter;
 
 class PachubeManager
 {
@@ -52,21 +52,41 @@ class PachubeManager
      * @param integer $feedId
      * @return DataTransform
      */
-    public function readFeed($apiVersion, $feedId, $apiKey){
+    public function readFeed($apiVersion, $feedId, $apiKey, $start = null, $end = null)
+    {
         if ($apiVersion != 'v1' && $apiVersion != 'v2')
             $this->conn->exceptionHandler(Connection::WRONG_API_VERSION);
-        //create Pachube object
-        $pachube = new Pachube($apiVersion, $feedId);
+
         $this->conn->setApiKey($apiKey);
 
         if ($this->conn->getApiKey() === null)
             $this->conn->exceptionHandler(Connection::WRONG_API_KEY);
 
-        //building web service url
-        $url = $pachube->buildUrl();
 
-        //getting data
-        $data = $this->conn->_getRequest($url);
+        //if historical query
+        if ($start != null && $end != null) {
+            $startDate = new \DateTime($start);
+            $endDate = new \DateTime($end);
+
+            $pachube = new Pachube($apiVersion, $feedId);
+            $pachube->setStartDate($startDate);
+            $pachube->setEndDate($endDate);
+
+            $url = $pachube->buildUrl();
+
+            $response = $this->conn->_getRequest($url);
+            return $response;
+        }
+        else {
+            $pachube = new Pachube($apiVersion, $feedId);
+
+            //building web service url
+            $url = $pachube->buildUrl();
+
+            //getting data
+            $data = $this->conn->_getRequest($url);
+
+        }
 
         return Formatter::toArray($data);
     }

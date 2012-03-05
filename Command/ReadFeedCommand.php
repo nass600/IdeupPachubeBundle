@@ -15,7 +15,7 @@ use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand,
     Ideup\PachubeBundle\Entity\Pachube,
     Ideup\PachubeBundle\Connection\Connection;
 
-class PachubeCommand extends ContainerAwareCommand
+class ReadFeedCommand extends ContainerAwareCommand
 {
     protected function configure()
     {
