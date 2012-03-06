@@ -34,7 +34,8 @@ class RecoverHistoricDataCommand extends ContainerAwareCommand
             new InputArgument(
                 'timezone', InputArgument::OPTIONAL, 'Timezone', 'Europe/Madrid'
             ),
-        ));
+        ))
+        ->addOption('override-data', null, InputOption::VALUE_NONE, 'Overrides the data retrieved from Pachube in database');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
@@ -127,15 +128,16 @@ class RecoverHistoricDataCommand extends ContainerAwareCommand
                         foreach ($formerAcquisitions as $item) {
                             $output->writeln("<info>Found former acquisitions</info> <comment>@</comment> {$item['quarter']} => <comment>{$item['average']}</comment>");
 
+
                             //Looking for the entry in HOuseBridgAcquisition
-                            $exist = $em
+                            $homeEnergy = $em
                                 ->getRepository('GNFSmartMeterBundle:HomeEnergy')
                                 ->findOneBy(array(
                                 'houseBridge'   => $bridge->getId(),
                                 'hour' => new \DateTime($item['quarter'])
                             ));
 
-                            if ($exist == null){
+                            if ($homeEnergy == null){
                                 $homeEnergy = $energyManager->create(
                                     $item['average'],
                                     new \DateTime($item['quarter']),
@@ -146,7 +148,16 @@ class RecoverHistoricDataCommand extends ContainerAwareCommand
                                 $output->writeln("======> <info>Energy entry inserted</info> <comment>@</comment> {$item['quarter']} => <comment>{$item['average']}</comment>");
                             }
                             else{
-                                $output->writeln("<comment>Entry already exists on HomeEnergy</comment> {$item['quarter']} => {$item['average']}");
+                                if ($input->getOption('override-data')) {
+                                    $homeEnergy->setPower($item['average']);
+                                    $homeEnergy->setConsumption((float)$item['average'] / 1000 * 0.25);
+                                    $energyManager->update($homeEnergy); //save
+
+                                    $output->writeln("<error>Overriding entry on HomeEnergy</error> {$item['quarter']} => {$item['average']}");
+                                }
+                                else{
+                                    $output->writeln("<comment>Entry already exists on HomeEnergy</comment> {$item['quarter']} => {$item['average']}");
+                                }
                             }
 
                         }
