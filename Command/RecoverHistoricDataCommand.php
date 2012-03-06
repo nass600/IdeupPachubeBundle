@@ -79,7 +79,9 @@ class RecoverHistoricDataCommand extends ContainerAwareCommand
 
                 $data = json_decode($data, true);
 
-                $output->writeln("================================== <comment>{$data['status']}</comment> =======================================");
+                if (isset($data['status'])){
+                    $output->writeln("================================== <comment>{$data['status']}</comment> =======================================");
+                }
 
                 if (isset($data['errors'])){
                     $output->writeln("<error>{$data['errors']}</error>");
