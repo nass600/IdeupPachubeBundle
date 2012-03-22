@@ -65,7 +65,7 @@ class RecoverHistoricDataCommand extends ContainerAwareCommand
             while($nextDate < $endDate){
 
                 $startRange = clone $nextDate;
-                $nextDate->modify('+6 hours');
+                $nextDate->modify('+4 hours');
                 if ($nextDate > $endDate){
                     $nextDate = $endDate;
                 }
