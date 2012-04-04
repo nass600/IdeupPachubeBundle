@@ -32,6 +32,9 @@ class RecoverHistoricDataCommand extends ContainerAwareCommand
                 'end', InputArgument::REQUIRED, 'End date'
             ),
             new InputArgument(
+                'bridge', InputArgument::OPTIONAL, 'Bridge', null
+            ),
+            new InputArgument(
                 'timezone', InputArgument::OPTIONAL, 'Timezone', 'Europe/Madrid'
             ),
         ))
@@ -54,129 +57,141 @@ class RecoverHistoricDataCommand extends ContainerAwareCommand
         $endDate = new \DateTime($end, new \DateTimeZone($timezone));
         $endDate->setTimezone(new \DateTimeZone('UTC'));
 
-        $houseBridges = $em->getRepository('GNFSmartMeterBundle:HouseBridge')->findActivatedBridges();
+        $bridgeSerial = $input->getArgument('bridge');
 
-        foreach ($houseBridges as $bridge) {
-            $output->writeln("\n\n\n+++++++++++++++++++++++++++ <info>{$bridge->getSerial()}</info> +++++++++++++++++++++++++++\n");
+        if ($bridgeSerial !== null){
+            $bridge = $em->getRepository('GNFSmartMeterBundle:HouseBridge')->findOneBySerial($bridgeSerial);
+            $this->recoverData($apiVersion, $bridge, $startDate, $endDate, $em, $acquisitionManager, $energyManager, $input, $output);
+        }
+        else{
+            $houseBridges = $em->getRepository('GNFSmartMeterBundle:HouseBridge')->findActivatedBridges();
+            foreach ($houseBridges as $bridge) {
+                $this->recoverData($apiVersion, $bridge, $startDate, $endDate, $em, $acquisitionManager, $energyManager, $input, $output);
+            }//no more bridges
+        }
 
-            $nextDate = clone $startDate;
+    }
 
-            // splits the requests of the API Pachube into pieces of 6 hours of range
-            while($nextDate < $endDate){
+    public function recoverData($apiVersion, $bridge, \DateTime $startDate, \DateTime $endDate, $em, $acquisitionManager, $energyManager, $input, $output){
+        $output->writeln("\n\n\n+++++++++++++++++++++++++++ <info>{$bridge->getSerial()}</info> +++++++++++++++++++++++++++\n");
 
-                $startRange = clone $nextDate;
-                $nextDate->modify('+4 hours');
-                if ($nextDate > $endDate){
-                    $nextDate = $endDate;
+        $nextDate = clone $startDate;
+
+        // splits the requests of the API Pachube into pieces of 6 hours of range
+        while($nextDate < $endDate){
+
+            $startRange = clone $nextDate;
+            $nextDate->modify('+4 hours');
+            if ($nextDate > $endDate){
+                $nextDate = $endDate;
+            }
+
+            $data = $this->getContainer()->get('ideup.pachube.manager')->readFeed(
+                $apiVersion,
+                $bridge->getFeedId(),
+                $bridge->getApiKey(),
+                $startRange->format('Y-m-d H:i:s'),$nextDate->format('Y-m-d H:i:s')
+            );
+
+            $data = json_decode($data, true);
+
+            if (isset($data['status'])){
+                $output->writeln("================================== <comment>{$data['status']}</comment> =======================================");
+            }
+
+            if (isset($data['errors'])){
+                $output->writeln("<error>{$data['errors']}</error>");
+                continue;
+            }
+
+            if (!isset($data['datastreams'][1]['datapoints'])) {
+                continue;
+            }
+            $points = $data['datastreams'][1]['datapoints'];
+            foreach ($points as $point) {
+                $pointDate = new \DateTime($point['at']);
+
+                //Looking for the entry in HOuseBridgAcquisition
+                $exist = $em
+                    ->getRepository('GNFSmartMeterBundle:HouseEnergyAcquisition')
+                    ->findOneBy(array(
+                    'serial'   => $bridge->getSerial(),
+                    'realDate' => $pointDate
+                ));
+
+                $intervalDate = $this->dateToInterval($pointDate);
+
+                if ($exist !== null){
+                    $output->writeln("<comment>Aquisition entry already exists:</comment> {$intervalDate->format('Y-m-d H:i:s')}");
+                    continue;
                 }
 
-                $data = $this->getContainer()->get('ideup.pachube.manager')->readFeed(
-                    $apiVersion,
-                    $bridge->getFeedId(),
-                    $bridge->getApiKey(),
-                    $startRange->format('Y-m-d H:i:s'),$nextDate->format('Y-m-d H:i:s')
+                //Creating new temporary data register
+                $acquisition = $acquisitionManager->create(
+                    $bridge->getSerial(),
+                    $point['value'],
+                    $pointDate,
+                    $intervalDate
                 );
 
-                $data = json_decode($data, true);
+                $acquisitionManager->update($acquisition); //save
+                $output->writeln("<info>Aquisition entry created:</info> {$intervalDate->format('Y-m-d H:i:s')} => <comment>{$point['value']}</comment>");
 
-                if (isset($data['status'])){
-                    $output->writeln("================================== <comment>{$data['status']}</comment> =======================================");
-                }
-
-                if (isset($data['errors'])){
-                    $output->writeln("<error>{$data['errors']}</error>");
-                    continue;
-                }
-
-                if (!isset($data['datastreams'][1]['datapoints'])) {
-                    continue;
-                }
-                $points = $data['datastreams'][1]['datapoints'];
-                foreach ($points as $point) {
-                    $pointDate = new \DateTime($point['at']);
-
-                    //Looking for the entry in HOuseBridgAcquisition
-                    $exist = $em
-                        ->getRepository('GNFSmartMeterBundle:HouseEnergyAcquisition')
-                        ->findOneBy(array(
-                        'serial'   => $bridge->getSerial(),
-                        'realDate' => $pointDate
-                    ));
-
-                    $intervalDate = $this->dateToInterval($pointDate);
-
-                    if ($exist !== null){
-                        $output->writeln("<comment>Aquisition entry already exists:</comment> {$intervalDate->format('Y-m-d H:i:s')}");
-                        continue;
-                    }
-
-                    //Creating new temporary data register
-                    $acquisition = $acquisitionManager->create(
-                        $bridge->getSerial(),
-                        $point['value'],
-                        $pointDate,
-                        $intervalDate
-                    );
-
-                    $acquisitionManager->update($acquisition); //save
-                    $output->writeln("<info>Aquisition entry created:</info> {$intervalDate->format('Y-m-d H:i:s')} => <comment>{$point['value']}</comment>");
-
-                    //Looking for former intervals items of the current serial if exists
-                    $formerAcquisitions = $em->getRepository('GNFSmartMeterBundle:HouseEnergyAcquisition')
-                        ->calculateAverageOfFormerIntervals($bridge->getSerial(), $intervalDate);
+                //Looking for former intervals items of the current serial if exists
+                $formerAcquisitions = $em->getRepository('GNFSmartMeterBundle:HouseEnergyAcquisition')
+                    ->calculateAverageOfFormerIntervals($bridge->getSerial(), $intervalDate);
 
 
-                    if (count($formerAcquisitions) > 0) {
-                        foreach ($formerAcquisitions as $item) {
-                            $output->writeln("<info>Found former acquisitions</info> <comment>@</comment> {$item['quarter']} => <comment>{$item['average']}</comment>");
+                if (count($formerAcquisitions) > 0) {
+                    foreach ($formerAcquisitions as $item) {
+                        $output->writeln("<info>Found former acquisitions</info> <comment>@</comment> {$item['quarter']} => <comment>{$item['average']}</comment>");
 
 
-                            //Looking for the entry in HOuseBridgAcquisition
-                            $homeEnergy = $em
-                                ->getRepository('GNFSmartMeterBundle:HomeEnergy')
-                                ->findOneBy(array(
-                                'houseBridge'   => $bridge->getId(),
-                                'hour' => new \DateTime($item['quarter'])
-                            ));
+                        //Looking for the entry in HOuseBridgAcquisition
+                        $homeEnergy = $em
+                            ->getRepository('GNFSmartMeterBundle:HomeEnergy')
+                            ->findOneBy(array(
+                            'houseBridge'   => $bridge->getId(),
+                            'hour' => new \DateTime($item['quarter'])
+                        ));
 
-                            if ($homeEnergy == null){
-                                $homeEnergy = $energyManager->create(
-                                    $item['average'],
-                                    new \DateTime($item['quarter']),
-                                    $bridge
-                                );
+                        if ($homeEnergy == null){
+                            $homeEnergy = $energyManager->create(
+                                $item['average'],
+                                new \DateTime($item['quarter']),
+                                $bridge
+                            );
 
+                            $energyManager->update($homeEnergy); //save
+                            $output->writeln("======> <info>Energy entry inserted</info> <comment>@</comment> {$item['quarter']} => <comment>{$item['average']}</comment>");
+                        }
+                        else{
+                            if ($input->getOption('override-data')) {
+                                $homeEnergy->setPower($item['average']);
+                                $homeEnergy->setConsumption((float)$item['average'] / 1000 * 0.25);
                                 $energyManager->update($homeEnergy); //save
-                                $output->writeln("======> <info>Energy entry inserted</info> <comment>@</comment> {$item['quarter']} => <comment>{$item['average']}</comment>");
+
+                                $output->writeln("<error>Overriding entry on HomeEnergy</error> {$item['quarter']} => {$item['average']}");
                             }
                             else{
-                                if ($input->getOption('override-data')) {
-                                    $homeEnergy->setPower($item['average']);
-                                    $homeEnergy->setConsumption((float)$item['average'] / 1000 * 0.25);
-                                    $energyManager->update($homeEnergy); //save
-
-                                    $output->writeln("<error>Overriding entry on HomeEnergy</error> {$item['quarter']} => {$item['average']}");
-                                }
-                                else{
-                                    $output->writeln("<comment>Entry already exists on HomeEnergy</comment> {$item['quarter']} => {$item['average']}");
-                                }
+                                $output->writeln("<comment>Entry already exists on HomeEnergy</comment> {$item['quarter']} => {$item['average']}");
                             }
-
                         }
-                        //Removing last items from acquisition
-                        $acquisitionManager->removeByDate($bridge->getSerial(), $intervalDate);
+
                     }
-                }//no more points
+                    //Removing last items from acquisition
+                    $acquisitionManager->removeByDate($bridge->getSerial(), $intervalDate);
+                }
+            }//no more points
 
-            }//no more ranges
+        }//no more ranges
 
-            $lastDate = $this->dateToInterval($endDate);
+        $lastDate = $this->dateToInterval($endDate);
 
-            //Cleaning acquisition
-            $acquisitionManager->removeByDate($bridge->getSerial(), $lastDate);
+        //Cleaning acquisition
+        $acquisitionManager->removeByDate($bridge->getSerial(), $lastDate);
 
-            $output->writeln("<info>Cleaning Acquisition registers before</info> {$lastDate->format('Y-m-d H:i:s')}");
-        }//no more bridges
+        $output->writeln("<info>Cleaning Acquisition registers before</info> {$lastDate->format('Y-m-d H:i:s')}");
     }
 
     /**
