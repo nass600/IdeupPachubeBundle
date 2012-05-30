@@ -57,7 +57,7 @@ class DumpDataCommand extends ContainerAwareCommand
         $end = $input->getArgument('end');
         $bridgeSerial = $input->getArgument('bridge');
         $timezone = $input->getArgument('timezone');
-        $this->data = array();
+        $this->data = array('serial', 'consumption', 'power', 'date');
 
         $this->em = $this->getContainer()->get('doctrine')->getEntityManager('default');
         $this->acquisitionManager = $this->getContainer()->get('gnf.house_energy_acquisition_manager');
