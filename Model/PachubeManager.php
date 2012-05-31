@@ -73,6 +73,7 @@ class PachubeManager
             $pachube->setEndDate($endDate);
 
             $url = $pachube->buildUrl();
+            
 
             $response = $this->conn->_getRequest($url);
             return $response;
