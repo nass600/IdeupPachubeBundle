@@ -22,11 +22,13 @@ class DumpDataCommand extends ContainerAwareCommand
 
     const INTERVAL = 15;
 
+    private $fh;
+
     protected function configure()
     {
         $this
                 ->setName('pachube:dump:data')
-                ->setDescription('Recovers historic data from all the house bridges stored in database')
+                ->setDescription('Recovers historic data from all the house bridges and dump to csv')
                 ->setDefinition(array(
                     new InputArgument(
                             'start', InputArgument::REQUIRED, 'Start date'
@@ -48,16 +50,16 @@ class DumpDataCommand extends ContainerAwareCommand
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        if (!$fp = fopen($input->getArgument('file'), 'w')) {
+        if (!$this->fh = fopen($input->getArgument('file'), 'w')) {
             throw new Exception('cant open ' . $input->getArgument('file') . ' in w mode ');
         }
+        fputcsv($this->fh, array('serial', 'consumption', 'power', 'date'));
 
         $apiVersion = 'v2';
         $start = $input->getArgument('start');
         $end = $input->getArgument('end');
         $bridgeSerial = $input->getArgument('bridge');
         $timezone = $input->getArgument('timezone');
-        $this->data = array('serial', 'consumption', 'power', 'date');
 
         $this->em = $this->getContainer()->get('doctrine')->getEntityManager('default');
         $this->acquisitionManager = $this->getContainer()->get('gnf.house_energy_acquisition_manager');
@@ -77,12 +79,7 @@ class DumpDataCommand extends ContainerAwareCommand
                 $this->recoverData($apiVersion, $bridge, $startDate, $endDate, $input, $output);
             }
         }
-
-
-        foreach ($this->data as $item) {
-            fputcsv($fp, $item);
-        }
-        fclose($fp);
+        fclose($this->fh);
     }
 
     public function recoverData($apiVersion, $bridge, \DateTime $startDate, \DateTime $endDate, $input, $output)
@@ -184,12 +181,12 @@ class DumpDataCommand extends ContainerAwareCommand
 
     public function persist(HomeEnergy $homeEnergy)
     {
-        array_push($this->data, array(
+        fputcsv($this->fh, array(
             'home_serial_bridge' => $homeEnergy->getHouseBridge()->getSerial(),
             'consumption' => $homeEnergy->getConsumption(),
             'power' => $homeEnergy->getPower(),
             'datetime' => $homeEnergy->getHour()->format('Y-m-d H:i:s')
-                ));
+        ));
     }
 
     /**
